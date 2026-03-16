@@ -1,0 +1,13 @@
+--pycache__
+__pycache__
+.venv
+dist
+build
+*.app
+*.dmg
+*.zip
+*.tar.gz
+*.tar.bz2
+*.tar.xz
+*.tar.lzma
+*.tar.lz
