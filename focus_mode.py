@@ -19,6 +19,8 @@ from ApplicationServices import (
 POLL_INTERVAL_SECONDS = 5
 DEFAULT_MAX_IDLE_SECONDS = 10 * 60
 DEFAULT_MAX_YOUTUBE_SECONDS = 15 * 60
+IDLE_ALERT_SOUND = "not_idle.mp3"
+YOUTUBE_ALERT_SOUND = "youtube_sound.mp3"
 
 def format_duration(seconds: int) -> str:
     minutes, secs = divmod(max(0, int(seconds)), 60)
@@ -79,14 +81,18 @@ class FocusModeApp(rumps.App):
         self.max_idle_seconds = DEFAULT_MAX_IDLE_SECONDS
         self.max_youtube_seconds = DEFAULT_MAX_YOUTUBE_SECONDS
         self.youtube_elapsed_seconds = 0
+        self.focus_mode_enabled = True
         self.alert_state = AlertState()
 
+        self.toggle_focus_mode_item = rumps.MenuItem("Focus Mode: ON")
         self.status_idle = rumps.MenuItem("Idle: --")
         self.status_youtube = rumps.MenuItem("YouTube: --")
         self.status_idle.set_callback(None)
         self.status_youtube.set_callback(None)
 
         self.menu = [
+            self.toggle_focus_mode_item,
+            None,
             self.status_idle,
             self.status_youtube,
             None,
@@ -96,6 +102,7 @@ class FocusModeApp(rumps.App):
             rumps.MenuItem("Quit"),
         ]
 
+        self.toggle_focus_mode_item.set_callback(self.toggle_focus_mode)
         self.menu["Set Max Idle Time"].set_callback(self.set_max_idle)
         self.menu["Set Max YouTube Time"].set_callback(self.set_max_youtube)
         self.menu["Quit"].set_callback(self.quit_app)
@@ -139,8 +146,30 @@ class FocusModeApp(rumps.App):
         if sound:
             sound.play()
 
-    def _notify(self, title: str, message: str):
+    def _resource_path(self, filename: str) -> str | None:
+        base_dir = os.path.dirname(os.path.abspath(__file__))
+        candidates = [
+            os.path.join(base_dir, "public", filename),
+            os.path.join(base_dir, "..", "Resources", "public", filename),
+        ]
+        for candidate in candidates:
+            full_path = os.path.abspath(candidate)
+            if os.path.exists(full_path):
+                return full_path
+        return None
+
+    def _play_sound_file(self, filename: str):
+        sound_path = self._resource_path(filename)
+        if sound_path:
+            os.system(f'afplay "{sound_path}"')
+            return
         self._play_alert()
+
+    def _notify(self, title: str, message: str, sound_file: str | None = None):
+        if sound_file:
+            self._play_sound_file(sound_file)
+        else:
+            self._play_alert()
         rumps.notification(title=title, subtitle="Focus Mode", message=message)
 
     def _current_idle_seconds(self) -> int:
@@ -151,12 +180,21 @@ class FocusModeApp(rumps.App):
         return int(max(0, value))
 
     def poll(self, _):
+        if not self.focus_mode_enabled:
+            self.youtube_elapsed_seconds = 0
+            self.alert_state.idle_alert_sent = False
+            self.alert_state.youtube_alert_sent = False
+            self.status_idle.title = "Idle: Paused (Focus Mode OFF)"
+            self.status_youtube.title = "YouTube: Paused (Focus Mode OFF)"
+            return
+
         idle_seconds = self._current_idle_seconds()
 
         if idle_seconds >= self.max_idle_seconds and not self.alert_state.idle_alert_sent:
             self._notify(
                 "Idle limit reached",
                 f"No activity for {format_duration(idle_seconds)}.",
+                sound_file=IDLE_ALERT_SOUND,
             )
             self.alert_state.idle_alert_sent = True
         elif idle_seconds < self.max_idle_seconds:
@@ -172,6 +210,7 @@ class FocusModeApp(rumps.App):
                 self._notify(
                     "YouTube limit reached",
                     f"YouTube active for {format_duration(self.youtube_elapsed_seconds)}.",
+                    sound_file=YOUTUBE_ALERT_SOUND,
                 )
                 self.alert_state.youtube_alert_sent = True
         else:
@@ -185,6 +224,19 @@ class FocusModeApp(rumps.App):
             f"YouTube: {format_duration(self.youtube_elapsed_seconds)} / "
             f"{format_duration(self.max_youtube_seconds)}"
         )
+
+    def toggle_focus_mode(self, _):
+        self.focus_mode_enabled = not self.focus_mode_enabled
+        self.toggle_focus_mode_item.title = (
+            "Focus Mode: ON" if self.focus_mode_enabled else "Focus Mode: OFF"
+        )
+
+        if not self.focus_mode_enabled:
+            self.youtube_elapsed_seconds = 0
+            self.alert_state.idle_alert_sent = False
+            self.alert_state.youtube_alert_sent = False
+            self.status_idle.title = "Idle: Paused (Focus Mode OFF)"
+            self.status_youtube.title = "YouTube: Paused (Focus Mode OFF)"
 
     def _update_seconds_setting(self, title: str, current_seconds: int) -> int | None:
         current_minutes = max(1, current_seconds // 60)

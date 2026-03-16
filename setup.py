@@ -4,6 +4,7 @@ APP = ["focus_mode.py"]
 DATA_FILES = []
 OPTIONS = {
     "argv_emulation": False,
+    "resources": ["public"],
     "plist": {
         "CFBundleName": "Focus Mode",
         "CFBundleDisplayName": "Focus Mode",

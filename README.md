@@ -11,6 +11,9 @@ When thresholds are exceeded, it plays a loud alert and sends a desktop notifica
 - Idle timer via Quartz HID idle API:
   - `CGEventSourceSecondsSinceLastEventType`
 - YouTube timer via AppleScript against frontmost browser tab
+- Mode-specific sounds from `public/`:
+  - `not_idle.mp3` for idle alerts
+  - `youtube_sound.mp3` for YouTube alerts
 - Runtime settings from menu:
   - Set max idle minutes (default 10)
   - Set max YouTube minutes (default 15)
