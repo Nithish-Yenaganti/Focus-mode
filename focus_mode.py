@@ -19,6 +19,7 @@ from ApplicationServices import (
 POLL_INTERVAL_SECONDS = 5
 DEFAULT_MAX_IDLE_SECONDS = 10 * 60
 DEFAULT_MAX_YOUTUBE_SECONDS = 15 * 60
+MIN_ALERT_VOLUME_PERCENT = 65
 IDLE_ALERT_SOUND = "not_idle.mp3"
 YOUTUBE_ALERT_SOUND = "youtube_sound.mp3"
 
@@ -61,6 +62,19 @@ def get_frontmost_browser_url() -> str:
     end if
     '''
     return run_applescript(script).strip().lower()
+
+
+def ensure_minimum_alert_volume(min_volume_percent: int = MIN_ALERT_VOLUME_PERCENT):
+    target_volume = int(min_volume_percent)
+    script = f'''
+    set currentSettings to get volume settings
+    set currentOutputVolume to output volume of currentSettings
+    set isOutputMuted to output muted of currentSettings
+    if isOutputMuted is true or currentOutputVolume < {target_volume} then
+        set volume output volume {target_volume} without output muted
+    end if
+    '''
+    run_applescript(script)
 
 
 @dataclass
@@ -137,6 +151,7 @@ class FocusModeApp(rumps.App):
         )
 
     def _play_alert(self):
+        ensure_minimum_alert_volume(MIN_ALERT_VOLUME_PERCENT)
         sound_path = "/System/Library/Sounds/Submarine.aiff"
         if os.path.exists(sound_path):
             os.system(f'afplay "{sound_path}"')
@@ -159,6 +174,7 @@ class FocusModeApp(rumps.App):
         return None
 
     def _play_sound_file(self, filename: str):
+        ensure_minimum_alert_volume(MIN_ALERT_VOLUME_PERCENT)
         sound_path = self._resource_path(filename)
         if sound_path:
             os.system(f'afplay "{sound_path}"')

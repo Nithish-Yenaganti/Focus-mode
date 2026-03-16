@@ -65,3 +65,4 @@ This app needs the following macOS permissions:
 ## Notes
 - If no browser is frontmost, browser is closed, or no active tab URL is available, YouTube timer resets to zero.
 - Alerts are sent once per threshold breach and re-arm once condition clears.
+- Before playing alerts, app raises system output to 65% if muted or below 65%.
