@@ -1,0 +1,5 @@
+rumps>=0.4.0
+pyobjc>=11.0
+pyobjc-framework-Quartz>=11.0
+pyobjc-framework-AppleScriptObjC>=11.0
+py2app>=0.28
