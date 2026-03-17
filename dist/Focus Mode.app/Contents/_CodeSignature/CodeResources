@@ -4,10 +4,6 @@
 <dict>
 	<key>files</key>
 	<dict>
-		<key>Resources/PythonApplet.icns</key>
-		<data>
-		9zRqvdRORUNhZjC9sNbLi26ck94=
-		</data>
 		<key>Resources/__boot__.py</key>
 		<data>
 		1tNCwopJZZF2ikQ8O/q4YBWPNU0=
@@ -22,7 +18,11 @@
 		</data>
 		<key>Resources/focus_mode.py</key>
 		<data>
-		0Oh4bQ2Zi7dkTLm9PSPL1wY5MvY=
+		dbDSbDlO/nLTXYGpciwR/C1NLAM=
+		</data>
+		<key>Resources/icon.icns</key>
+		<data>
+		B59VNvU21Rw+Aqm876UUipUMssk=
 		</data>
 		<key>Resources/include/python3.14/pyconfig.h</key>
 		<data>
@@ -3742,7 +3742,7 @@
 		</data>
 		<key>Resources/lib/python314.zip</key>
 		<data>
-		g7OoJ60Dbbv/adUJAlQVS2jTakM=
+		Wlol4RXpFwpRAbZW0uDvYT7X0Tc=
 		</data>
 		<key>Resources/openssl.ca/cert.pem</key>
 		<data>
@@ -3751,6 +3751,58 @@
 		<key>Resources/openssl.ca/certs/.keepme</key>
 		<data>
 		2jmj7l5rSw0yVb/vlWAYkK/YBwk=
+		</data>
+		<key>Resources/public/icon.icns</key>
+		<data>
+		B59VNvU21Rw+Aqm876UUipUMssk=
+		</data>
+		<key>Resources/public/icon.iconset/icon_1024x1024.png</key>
+		<data>
+		JJUaZ/MncYwHLkeLRHbeGa/EEtI=
+		</data>
+		<key>Resources/public/icon.iconset/icon_128x128.png</key>
+		<data>
+		TchQ+mq+8zCJBKFQMjyUCLC3fMg=
+		</data>
+		<key>Resources/public/icon.iconset/icon_128x128@2x.png</key>
+		<data>
+		rG6c54jZMaJvX1ZmUWrrk4qmAZY=
+		</data>
+		<key>Resources/public/icon.iconset/icon_16x16.png</key>
+		<data>
+		nUOi3Xbcum2Lztp8HfHv62UCAkw=
+		</data>
+		<key>Resources/public/icon.iconset/icon_16x16@2x.png</key>
+		<data>
+		jcnsrTNAKUdexUx84v+QV1Oz7Rs=
+		</data>
+		<key>Resources/public/icon.iconset/icon_256x256.png</key>
+		<data>
+		rG6c54jZMaJvX1ZmUWrrk4qmAZY=
+		</data>
+		<key>Resources/public/icon.iconset/icon_256x256@2x.png</key>
+		<data>
+		5QMsm5xlvpnYksHBuxONgAuzvzA=
+		</data>
+		<key>Resources/public/icon.iconset/icon_32x32.png</key>
+		<data>
+		jcnsrTNAKUdexUx84v+QV1Oz7Rs=
+		</data>
+		<key>Resources/public/icon.iconset/icon_32x32@2x.png</key>
+		<data>
+		633cjxJ77YM3h3wZ8U5L+u0F1ds=
+		</data>
+		<key>Resources/public/icon.iconset/icon_512x512.png</key>
+		<data>
+		5QMsm5xlvpnYksHBuxONgAuzvzA=
+		</data>
+		<key>Resources/public/icon.iconset/icon_512x512@2x.png</key>
+		<data>
+		JJUaZ/MncYwHLkeLRHbeGa/EEtI=
+		</data>
+		<key>Resources/public/icon.png</key>
+		<data>
+		m+AX/LNDmaXX+VM/+70CcRYcqDE=
 		</data>
 		<key>Resources/public/not_idle.mp3</key>
 		<data>
@@ -3762,7 +3814,7 @@
 		</data>
 		<key>Resources/site.pyc</key>
 		<data>
-		fVleE4BadhCMOpUs+eCFyPMq7oQ=
+		hysp7lmQkaGLzDxzpTAUkGWHIMg=
 		</data>
 		<key>Resources/zlib.cpython-314-darwin.so</key>
 		<data>
@@ -3844,13 +3896,6 @@
 			<key>requirement</key>
 			<string>cdhash H"91babe61a86f60a1516a80f34fc18197f76dbb1f"</string>
 		</dict>
-		<key>Resources/PythonApplet.icns</key>
-		<dict>
-			<key>hash2</key>
-			<data>
-			eHksEElSftDQiDfMtwxo3rWW/gCukmOJdD1flXi1uxE=
-			</data>
-		</dict>
 		<key>Resources/__boot__.py</key>
 		<dict>
 			<key>hash2</key>
@@ -3876,7 +3921,14 @@
 		<dict>
 			<key>hash2</key>
 			<data>
-			d5G7iZ/GkNKuNUM7hWwwklI6y5sI+tPCi5qi0CLLDCY=
+			GMSLpUmOF9M82nA2WSEqODxdH8B1iDeJOz47eDzBGhs=
+			</data>
+		</dict>
+		<key>Resources/icon.icns</key>
+		<dict>
+			<key>hash2</key>
+			<data>
+			m2l1i+QnNC7sEts/LfOupj+7RTG63KSxXa4zSNmrqkc=
 			</data>
 		</dict>
 		<key>Resources/include/python3.14/pyconfig.h</key>
@@ -10391,7 +10443,7 @@
 		<dict>
 			<key>hash2</key>
 			<data>
-			xs+zLVIZs41viexR5qg7iB7F+OIhj8C/3QbWDpOMGSA=
+			KRpVALbjJckNI+GsX0PBDY2D8vXOl+ZV7aMXxATvcyk=
 			</data>
 		</dict>
 		<key>Resources/openssl.ca/cert.pem</key>
@@ -10406,6 +10458,97 @@
 			<key>hash2</key>
 			<data>
 			47DEQpj8HBSa+/TImW+5JCeuQeRkm5NMpJWZG3hSuFU=
+			</data>
+		</dict>
+		<key>Resources/public/icon.icns</key>
+		<dict>
+			<key>hash2</key>
+			<data>
+			m2l1i+QnNC7sEts/LfOupj+7RTG63KSxXa4zSNmrqkc=
+			</data>
+		</dict>
+		<key>Resources/public/icon.iconset/icon_1024x1024.png</key>
+		<dict>
+			<key>hash2</key>
+			<data>
+			up32Sq8KiRXkr9acVB4JnfDRjcPf8MB6Sf1rKtNnzFI=
+			</data>
+		</dict>
+		<key>Resources/public/icon.iconset/icon_128x128.png</key>
+		<dict>
+			<key>hash2</key>
+			<data>
+			X43ia4b68lG4G3Q7ZAvFsE8mX8rlO6hJhOJh1+fqi04=
+			</data>
+		</dict>
+		<key>Resources/public/icon.iconset/icon_128x128@2x.png</key>
+		<dict>
+			<key>hash2</key>
+			<data>
+			WgCjTGbORk7rqOn9+Qr9FOKwK9J1OALI4oozTTyQeaU=
+			</data>
+		</dict>
+		<key>Resources/public/icon.iconset/icon_16x16.png</key>
+		<dict>
+			<key>hash2</key>
+			<data>
+			WBSi+3enHTxm326cui0IaPubgPqNM36tHeO3HN2SVfI=
+			</data>
+		</dict>
+		<key>Resources/public/icon.iconset/icon_16x16@2x.png</key>
+		<dict>
+			<key>hash2</key>
+			<data>
+			w7vmK6X17aG47A3CTrrqf52hMvR/DzCevgLmQ4+STY4=
+			</data>
+		</dict>
+		<key>Resources/public/icon.iconset/icon_256x256.png</key>
+		<dict>
+			<key>hash2</key>
+			<data>
+			WgCjTGbORk7rqOn9+Qr9FOKwK9J1OALI4oozTTyQeaU=
+			</data>
+		</dict>
+		<key>Resources/public/icon.iconset/icon_256x256@2x.png</key>
+		<dict>
+			<key>hash2</key>
+			<data>
+			PbGLJJAeQWNRO4YQkmesG11tBGc16wdYCrL4ujqYH2Q=
+			</data>
+		</dict>
+		<key>Resources/public/icon.iconset/icon_32x32.png</key>
+		<dict>
+			<key>hash2</key>
+			<data>
+			w7vmK6X17aG47A3CTrrqf52hMvR/DzCevgLmQ4+STY4=
+			</data>
+		</dict>
+		<key>Resources/public/icon.iconset/icon_32x32@2x.png</key>
+		<dict>
+			<key>hash2</key>
+			<data>
+			2s36HXjHvO0KK/LX4mr7ttnCn4UqR5NKRD9AbRVuVt4=
+			</data>
+		</dict>
+		<key>Resources/public/icon.iconset/icon_512x512.png</key>
+		<dict>
+			<key>hash2</key>
+			<data>
+			PbGLJJAeQWNRO4YQkmesG11tBGc16wdYCrL4ujqYH2Q=
+			</data>
+		</dict>
+		<key>Resources/public/icon.iconset/icon_512x512@2x.png</key>
+		<dict>
+			<key>hash2</key>
+			<data>
+			up32Sq8KiRXkr9acVB4JnfDRjcPf8MB6Sf1rKtNnzFI=
+			</data>
+		</dict>
+		<key>Resources/public/icon.png</key>
+		<dict>
+			<key>hash2</key>
+			<data>
+			6CRRt52C/OJUOI6TxITJTi9gC+7eczGeLyEQyXkEA+I=
 			</data>
 		</dict>
 		<key>Resources/public/not_idle.mp3</key>
@@ -10426,7 +10569,7 @@
 		<dict>
 			<key>hash2</key>
 			<data>
-			dDqb6rqMhDaxlmgYbtLKwXfZRlZZpGjzZdRoYZWnvFQ=
+			WuGyAJa9kPiOqE47fmvnPIZcXVgh8Nspczn+lifH6hM=
 			</data>
 		</dict>
 		<key>Resources/zlib.cpython-314-darwin.so</key>

@@ -2,8 +2,10 @@ from setuptools import setup
 
 APP = ["focus_mode.py"]
 DATA_FILES = []
+ICON_FILE = "public/icon.icns"
 OPTIONS = {
     "argv_emulation": False,
+    "iconfile": ICON_FILE,
     "resources": ["public"],
     "plist": {
         "CFBundleName": "Focus Mode",

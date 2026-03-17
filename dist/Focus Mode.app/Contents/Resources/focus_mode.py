@@ -22,6 +22,7 @@ DEFAULT_MAX_YOUTUBE_SECONDS = 15 * 60
 MIN_ALERT_VOLUME_PERCENT = 65
 IDLE_ALERT_SOUND = "not_idle.mp3"
 YOUTUBE_ALERT_SOUND = "youtube_sound.mp3"
+ICON_FILE = "icon.png"
 
 def format_duration(seconds: int) -> str:
     minutes, secs = divmod(max(0, int(seconds)), 60)
@@ -77,6 +78,19 @@ def ensure_minimum_alert_volume(min_volume_percent: int = MIN_ALERT_VOLUME_PERCE
     run_applescript(script)
 
 
+def resolve_resource_path(filename: str) -> str | None:
+    base_dir = os.path.dirname(os.path.abspath(__file__))
+    candidates = [
+        os.path.join(base_dir, "public", filename),
+        os.path.join(base_dir, "..", "Resources", "public", filename),
+    ]
+    for candidate in candidates:
+        full_path = os.path.abspath(candidate)
+        if os.path.exists(full_path):
+            return full_path
+    return None
+
+
 @dataclass
 class AlertState:
     idle_alert_sent: bool = False
@@ -85,9 +99,11 @@ class AlertState:
 
 class FocusModeApp(rumps.App):
     def __init__(self):
+        icon_path = resolve_resource_path(ICON_FILE)
         super().__init__(
             name="Focus Mode",
-            title="Focus",
+            icon=icon_path,
+            title="" if icon_path else "Focus",
             quit_button=None,
             menu=[],
         )
@@ -162,16 +178,7 @@ class FocusModeApp(rumps.App):
             sound.play()
 
     def _resource_path(self, filename: str) -> str | None:
-        base_dir = os.path.dirname(os.path.abspath(__file__))
-        candidates = [
-            os.path.join(base_dir, "public", filename),
-            os.path.join(base_dir, "..", "Resources", "public", filename),
-        ]
-        for candidate in candidates:
-            full_path = os.path.abspath(candidate)
-            if os.path.exists(full_path):
-                return full_path
-        return None
+        return resolve_resource_path(filename)
 
     def _play_sound_file(self, filename: str):
         ensure_minimum_alert_volume(MIN_ALERT_VOLUME_PERCENT)
