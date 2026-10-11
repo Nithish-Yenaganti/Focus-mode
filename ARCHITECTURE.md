@@ -11,27 +11,20 @@ flowchart TD
         Menu["Menu bar UI<br/>FocusModeApp (rumps)"]
         PollTimer["poll() timer<br/>every 5s"]
         PomoTimer["pomodoro_tick() timer<br/>every 1s"]
-        Overlay["BreakOverlay<br/>NSWindow per NSScreen"]
-        Worker["Lesson worker<br/>daemon thread"]
+        Overlay["BreakOverlay<br/>NSWindow per NSScreen<br/>countdown + short tip"]
         Alerts["Alerts<br/>afplay + notification"]
     end
     Quartz["Quartz HID idle API"]
     Browser["Chrome / Safari<br/>via AppleScript"]
-    CLI["claude CLI<br/>-p --no-session-persistence"]
-    Fallback["Built-in lessons"]
 
     User <--> Menu
     Menu -->|start / stop / settings| PomoTimer
     PollTimer -->|idle seconds| Quartz
     PollTimer -->|frontmost tab URL| Browser
     PollTimer -->|limit reached| Alerts
-    PomoTimer -->|break starts| Overlay
-    PomoTimer -->|break starts| Worker
-    Worker -->|prompt| CLI
-    CLI -->|lesson text| Worker
-    Worker -.->|CLI missing / slow| Fallback
-    Worker -->|pending lesson| PomoTimer
-    PomoTimer -->|countdown + lesson| Overlay
+    PomoTimer -->|break starts: show| Overlay
+    PomoTimer -->|every second: countdown| Overlay
+    PomoTimer -->|break ends: hide| Overlay
     PomoTimer -->|phase change| Alerts
     Overlay --> User
 ```
@@ -57,31 +50,25 @@ stateDiagram-v2
 sequenceDiagram
     participant T as pomodoro_tick (1s)
     participant O as BreakOverlay
-    participant W as Worker thread
-    participant C as claude CLI
+    participant U as User
 
     T->>T: work time reaches 0
     T->>T: completed_pomodoros += 1, pick break length
+    T->>U: play sound
     T->>O: show(seconds, long_break)
-    T->>W: start thread (generation N)
-    W->>C: claude -p "teach me about <topic>" --model haiku --no-session-persistence --tools ""
-    C-->>W: lesson text (or error / timeout)
-    W->>W: fallback lesson if needed
-    W-->>T: _pending_lesson (only if generation still N)
+    O->>O: cover every screen, pick a random tip
     loop every second
         T->>O: set_countdown(remaining)
-        T->>O: set_lesson(text) once available
     end
-    T->>O: hide() at 0, play sound
+    T->>O: hide() at 0
+    T->>U: play sound
     T->>T: start next work phase
 ```
 
 ## Key design decisions
 - **One process, two timers.** A 5s `poll` handles idle/YouTube; a 1s `pomodoro_tick` drives phases. `poll` returns early during breaks.
-- **UI only on the main thread.** The worker thread only writes `_pending_lesson`; the 1s tick applies it to the overlay.
-- **Generation counter.** Stop or a new phase bumps `_lesson_generation`, so a slow lesson can't appear in a later break.
 - **Overlay.** One borderless `NSWindow` per screen at `CGShieldingWindowLevel`, on all Spaces.
-- **No chat history.** The lesson call uses `--no-session-persistence` and `--tools ""`, and runs from a temp directory.
-- **Graceful fallback.** Missing CLI, error or 45s timeout shows one of the built-in lessons.
+- **Screen-free breaks.** The overlay shows only a countdown and one short tip. Nothing to read, so you actually look away.
+- **No network, no external tools.** Everything runs locally, with no dependency on any CLI or service.
 
 See [PROJECT.md](PROJECT.md) for the feature overview.

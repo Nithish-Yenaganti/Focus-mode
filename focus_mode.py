@@ -1,10 +1,6 @@
 #!/usr/bin/env python3
 import os
 import random
-import shutil
-import subprocess
-import tempfile
-import threading
 from dataclasses import dataclass
 
 import rumps
@@ -44,34 +40,17 @@ DEFAULT_WORK_SECONDS = 25 * 60
 DEFAULT_BREAK_SECONDS = 5 * 60
 DEFAULT_LONG_BREAK_SECONDS = 15 * 60
 POMODOROS_PER_LONG_BREAK = 4
-LESSON_TIMEOUT_SECONDS = 45
-LESSON_TOPICS = [
-    "tech industry history",
-    "computer science fundamentals",
-    "algorithms and data structures",
-    "artificial intelligence and machine learning",
-    "software engineering practices",
-    "distributed systems",
-    "databases",
-    "operating systems",
-    "networking and the internet",
-    "programming language design",
-    "cybersecurity",
-    "system design",
-    "developer tooling and version control",
-    "tech startups and business models",
+BREAK_TIPS = [
+    "Stand up and walk away from your desk",
+    "Look out the window at something far away",
+    "Drink a glass of water",
+    "Close your eyes and breathe slowly",
+    "Roll your shoulders and stretch your neck",
 ]
-FALLBACK_LESSONS = [
-    "Big-O notation describes how an algorithm's cost grows with input size. "
-    "An O(n log n) sort stays practical on millions of items, while O(n^2) quickly collapses.",
-    "The CAP theorem says a distributed system facing a network partition must choose "
-    "between consistency and availability. Every database design makes that trade-off somewhere.",
-    "Conway's Law: organizations design systems that mirror their own communication structure. "
-    "If you want a different architecture, you often have to change the team layout first.",
-    "A transformer model uses attention to weigh how relevant every token is to every other token, "
-    "which lets it capture long-range context without processing text strictly in sequence.",
-    "Idempotent operations can be repeated safely with the same result. That is why retries "
-    "in payment and API design depend on idempotency keys.",
+LONG_BREAK_TIPS = [
+    "Take a walk, go outside if you can",
+    "Stretch your back, arms and legs",
+    "Get water or a snack, then rest your eyes",
 ]
 
 def format_duration(seconds: int) -> str:
@@ -141,55 +120,12 @@ def resolve_resource_path(filename: str) -> str | None:
     return None
 
 
-def find_claude_cli() -> str | None:
-    found = shutil.which("claude")
-    if found:
-        return found
-    for candidate in (
-        os.path.expanduser("~/.local/bin/claude"),
-        "/opt/homebrew/bin/claude",
-        "/usr/local/bin/claude",
-    ):
-        if os.path.exists(candidate):
-            return candidate
-    return None
-
-
-def fetch_lesson() -> str:
-    """Ask the Claude CLI for a short lesson. Nothing is saved to chat history."""
-    cli = find_claude_cli()
-    if cli:
-        topic = random.choice(LESSON_TOPICS)
-        prompt = (
-            f"Teach me one specific, interesting thing about {topic}. "
-            "Pick something non-obvious (variation seed: "
-            f"{random.randint(1, 10**6)}). Use 3 to 4 short sentences, plain text only, "
-            "no markdown, no preamble."
-        )
-        try:
-            result = subprocess.run(
-                [cli, "-p", prompt, "--model", "haiku",
-                 "--no-session-persistence", "--tools", ""],
-                capture_output=True,
-                text=True,
-                timeout=LESSON_TIMEOUT_SECONDS,
-                cwd=tempfile.gettempdir(),
-            )
-            text = result.stdout.strip()
-            if result.returncode == 0 and text:
-                return text
-        except (subprocess.SubprocessError, OSError):
-            pass
-    return random.choice(FALLBACK_LESSONS)
-
-
 class BreakOverlay:
     """Full-screen, always-on-top windows on every display."""
 
     def __init__(self):
         self.windows = []
         self.countdown_labels = []
-        self.lesson_labels = []
 
     @staticmethod
     def _label(text, size, frame, bold=False, alpha=1.0):
@@ -209,11 +145,8 @@ class BreakOverlay:
 
     def show(self, seconds: int, long_break: bool = False):
         self.hide()
-        heading = (
-            "Long break: stand up, stretch, look away"
-            if long_break
-            else "Break: look away from the screen"
-        )
+        heading = "Long break: step away from the screen" if long_break else "Break: look away from the screen"
+        tip = random.choice(LONG_BREAK_TIPS if long_break else BREAK_TIPS)
         for screen in NSScreen.screens():
             frame = screen.frame()
             w, h = frame.size.width, frame.size.height
@@ -231,17 +164,13 @@ class BreakOverlay:
             countdown = self._label(
                 format_duration(seconds), 96, ((0, h * 0.60), (w, 120)), bold=True
             )
-            lesson = self._label(
-                "Fetching something to learn...", 24,
-                ((w * 0.15, h * 0.18), (w * 0.7, h * 0.36)), alpha=0.85,
-            )
-            for view in (title, countdown, lesson):
+            tip_label = self._label(tip, 32, ((w * 0.15, h * 0.40), (w * 0.7, 80)), alpha=0.8)
+            for view in (title, countdown, tip_label):
                 content.addSubview_(view)
 
             window.makeKeyAndOrderFront_(None)
             self.windows.append(window)
             self.countdown_labels.append(countdown)
-            self.lesson_labels.append(lesson)
         app = NSApp()
         if app is not None:
             app.activateIgnoringOtherApps_(True)
@@ -250,17 +179,12 @@ class BreakOverlay:
         for label in self.countdown_labels:
             label.setStringValue_(format_duration(seconds))
 
-    def set_lesson(self, text: str):
-        for label in self.lesson_labels:
-            label.setStringValue_(text)
-
     def hide(self):
         for window in self.windows:
             window.orderOut_(None)
             window.close()
         self.windows = []
         self.countdown_labels = []
-        self.lesson_labels = []
 
 
 @dataclass
@@ -294,8 +218,6 @@ class FocusModeApp(rumps.App):
         self.phase = "work"
         self.phase_remaining = 0
         self.overlay = BreakOverlay()
-        self._pending_lesson: str | None = None
-        self._lesson_generation = 0
 
         self.toggle_focus_mode_item = rumps.MenuItem("Focus Mode: ON")
         self.status_idle = rumps.MenuItem("Idle: --")
@@ -526,7 +448,6 @@ class FocusModeApp(rumps.App):
 
     def _stop_pomodoro(self):
         self.pomodoro_running = False
-        self._lesson_generation += 1  # discard any in-flight lesson
         self.pomodoro_timer.stop()
         self.overlay.hide()
         self.pomodoro_toggle_item.title = "Start Pomodoro"
@@ -542,18 +463,8 @@ class FocusModeApp(rumps.App):
         self.completed_pomodoros += 1
         is_long = self.completed_pomodoros % POMODOROS_PER_LONG_BREAK == 0
         self.phase_remaining = self.long_break_seconds if is_long else self.break_seconds
-        self._pending_lesson = None
-        self._lesson_generation += 1
-        generation = self._lesson_generation
         self._play_alert()
         self.overlay.show(self.phase_remaining, long_break=is_long)
-
-        def worker():
-            text = fetch_lesson()
-            if generation == self._lesson_generation:
-                self._pending_lesson = text
-
-        threading.Thread(target=worker, daemon=True).start()
 
     def pomodoro_tick(self, _):
         if not self.pomodoro_running:
@@ -561,14 +472,10 @@ class FocusModeApp(rumps.App):
         self.phase_remaining -= 1
 
         if self.phase == "break":
-            if self._pending_lesson is not None:
-                self.overlay.set_lesson(self._pending_lesson)
-                self._pending_lesson = None
             self.overlay.set_countdown(self.phase_remaining)
             self.status_pomodoro.title = f"Break: {format_duration(self.phase_remaining)}"
             self.title = f"Break {format_duration(self.phase_remaining)}"
             if self.phase_remaining <= 0:
-                self._lesson_generation += 1
                 self.overlay.hide()
                 self._play_alert()
                 self._start_work()

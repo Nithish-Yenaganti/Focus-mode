@@ -8,10 +8,8 @@ a classic Pomodoro timer with locked breaks, plus idle and YouTube usage alerts.
    - 25 min work, 5 min short break, 15 min long break after every 4th pomodoro.
    - Breaks show a full-screen, always-on-top overlay on every display (no skip button).
    - Repeats until stopped from the menu.
-2. **Lesson during breaks**: a short fact about the tech industry, CS, AI or software
-   engineering, fetched in the background via the Claude CLI
-   (`claude -p ... --model haiku --no-session-persistence --tools ""`).
-   Nothing is saved to chat history. Falls back to built-in lessons if the CLI is missing or slow.
+2. **Screen-free breaks**: the overlay shows only a countdown and one short tip (stand up, look far away, drink water).
+   No reading material on purpose: the break is meant to get you away from the screen.
 3. **Idle monitor**: alert when there is no keyboard/mouse activity for too long (default 10 min).
 4. **YouTube monitor**: alert when the frontmost Chrome/Safari tab stays on YouTube too long (default 15 min).
 5. All limits editable from the menu. Idle and YouTube checks pause during breaks.
@@ -19,7 +17,7 @@ a classic Pomodoro timer with locked breaks, plus idle and YouTube usage alerts.
 ## Layout
 | Path | Purpose |
 |---|---|
-| `focus_mode.py` | The whole app: `FocusModeApp` (menu, timers), `BreakOverlay` (lock screen), `fetch_lesson` |
+| `focus_mode.py` | The whole app: `FocusModeApp` (menu, timers), `BreakOverlay` (lock screen) |
 | `setup.py` | py2app build config (version, plist, bundled `public/` resources) |
 | `public/` | Icons and alert sounds |
 | `requirements.txt` | Python dependencies |
@@ -30,12 +28,10 @@ a classic Pomodoro timer with locked breaks, plus idle and YouTube usage alerts.
 - `rumps.Timer(pomodoro_tick, 1s)`: drives work/break phases and the countdown.
 - Phase flow: `work -> break (short, or long every 4th) -> work ...`.
 - `BreakOverlay` creates one borderless `NSWindow` per `NSScreen` at `CGShieldingWindowLevel`.
-- The lesson is fetched on a daemon thread; the 1s tick copies the result to the overlay on the main thread.
-  A generation counter discards stale results after Stop or phase changes.
 
 ## Constants (top of `focus_mode.py`)
 `DEFAULT_WORK_SECONDS`, `DEFAULT_BREAK_SECONDS`, `DEFAULT_LONG_BREAK_SECONDS`,
-`POMODOROS_PER_LONG_BREAK`, `LESSON_TOPICS`, `FALLBACK_LESSONS`.
+`POMODOROS_PER_LONG_BREAK`, `BREAK_TIPS`, `LONG_BREAK_TIPS`.
 
 ## Build and release
 ```bash
@@ -47,6 +43,5 @@ hdiutil create -volname "Focus Mode" -srcfolder "dist/Focus Mode.app" -ov -forma
 
 ## Known limits
 - The overlay cannot block Cmd+Tab or Force Quit; Quit from the menu bar also exits.
-- Lessons need the `claude` CLI installed and signed in; otherwise built-in lessons are used.
 - Requires Accessibility (idle) and Automation (browser URL) permissions.
 - Settings reset on restart (not persisted).

@@ -1,6 +1,6 @@
 # Focus Mode (macOS Menu Bar App)
 
-A native Python menu bar app with a classic Pomodoro timer (locked breaks with a short lesson) that also monitors:
+A native Python menu bar app with a classic Pomodoro timer (locked, screen-free breaks) that also monitors:
 - System idle time (keyboard/mouse inactivity)
 - Continuous YouTube usage in the frontmost Chrome/Safari tab
 
@@ -9,9 +9,8 @@ When thresholds are exceeded, it plays a loud alert and sends a desktop notifica
 ## Pomodoro with locked breaks
 - Menu: **Start Pomodoro** / **Stop Pomodoro**. The menu bar shows the time left.
 - Classic Pomodoro cycle: 25 min work, then a locked 5 min short break; after every 4th pomodoro the break is a locked 15 min long break. It repeats until stopped.
-- During a break a full-screen overlay covers every display.
-- During the break, the overlay shows a short lesson on tech, CS, AI or software engineering. It is fetched in the background with
-  `claude -p ... --no-session-persistence --tools ""`, so nothing is saved to your Claude chat history. It falls back to a built-in lesson if the `claude` CLI is missing or slow.
+- During a break a full-screen overlay covers every display with a countdown and one short tip ("Stand up", "Look out the window", "Drink water"). There is nothing to read, because the point is to look away.
+- A sound plays when a break starts and ends.
 - All lengths are editable: **Set Work Minutes**, **Set Break Minutes**, **Set Long Break Minutes**.
 - Idle and YouTube monitoring pause during breaks.
 - The overlay has no skip button. Use Quit from the menu bar if you must.
@@ -83,5 +82,4 @@ This app needs the following macOS permissions:
 ## Notes
 - If no browser is frontmost, browser is closed, or no active tab URL is available, YouTube timer resets to zero.
 - Alerts are sent once per threshold breach and re-arm once condition clears.
-- Lessons use the `claude` CLI if installed; otherwise built-in lessons are shown.
 - Before playing alerts, app raises system output to 65% if muted or below 65%.
