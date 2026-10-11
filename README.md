@@ -63,7 +63,7 @@ Package a DMG:
 hdiutil create -volname "Focus Mode" -srcfolder "dist/Focus Mode.app" -ov -format UDZO Focus-Mode.dmg
 ```
 
-See [PROJECT.md](PROJECT.md) for architecture and design notes.
+See [PROJECT.md](PROJECT.md) for the overview and [ARCHITECTURE.md](ARCHITECTURE.md) for diagrams.
 
 ## Permissions
 
