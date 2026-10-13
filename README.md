@@ -41,6 +41,16 @@ pip install -U pip
 pip install -r requirements.txt
 ```
 
+## Install (users)
+
+Download the latest `Focus-Mode-<version>.dmg` from the [Releases page](https://github.com/Nithish-Yenaganti/Focus-mode/releases), open it and drag **Focus Mode** to **Applications**.
+
+The app is not yet signed with an Apple Developer ID, so macOS may refuse to open it the first time. Run this once, then open it again:
+
+```bash
+xattr -dr com.apple.quarantine "/Applications/Focus Mode.app"
+```
+
 ## Run (development)
 
 ```bash
@@ -56,10 +66,17 @@ python setup.py py2app
 Built app output:
 - `dist/Focus Mode.app`
 
-Package a DMG:
+Package a DMG (it is git-ignored; publish it as a GitHub Release, see below):
 
 ```bash
 hdiutil create -volname "Focus Mode" -srcfolder "dist/Focus Mode.app" -ov -format UDZO Focus-Mode.dmg
+```
+
+Publish a release:
+
+```bash
+cp Focus-Mode.dmg Focus-Mode-1.1.0.dmg
+gh release create v1.1.0 Focus-Mode-1.1.0.dmg --title "Focus Mode 1.1.0" --notes-file CHANGELOG.md
 ```
 
 See [PROJECT.md](PROJECT.md) for the overview and [ARCHITECTURE.md](ARCHITECTURE.md) for diagrams.

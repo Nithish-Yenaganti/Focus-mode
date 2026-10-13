@@ -21,7 +21,7 @@ a classic Pomodoro timer with locked breaks, plus idle and YouTube usage alerts.
 | `setup.py` | py2app build config (version, plist, bundled `public/` resources) |
 | `public/` | Icons and alert sounds |
 | `requirements.txt` | Python dependencies |
-| `Focus-Mode.dmg` | Prebuilt installer |
+| `CHANGELOG.md` | Version history; installers are published on GitHub Releases, not in git |
 
 ## How it works
 - `rumps.Timer(poll, 5s)`: idle and YouTube checks.
