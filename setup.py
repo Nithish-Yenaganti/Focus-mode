@@ -11,11 +11,12 @@ OPTIONS = {
         "CFBundleName": "Focus Mode",
         "CFBundleDisplayName": "Focus Mode",
         "CFBundleIdentifier": "com.focusmode.menubar",
-        "CFBundleVersion": "1.1.0",
-        "CFBundleShortVersionString": "1.1.0",
+        "CFBundleVersion": "1.2.0",
+        "CFBundleShortVersionString": "1.2.0",
         "LSUIElement": True,
         "NSAppleEventsUsageDescription": "Focus Mode uses browser tab URL checks to monitor YouTube time.",
     },
+    "includes": ["_math_integer", "subprocess", "selectors", "shlex"],
     "packages": ["rumps", "AppKit", "Foundation", "Quartz", "ApplicationServices"],
 }
 

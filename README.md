@@ -15,6 +15,13 @@ When thresholds are exceeded, it plays a loud alert and sends a desktop notifica
 - Idle and YouTube monitoring pause during breaks.
 - The overlay has no skip button. Use Quit from the menu bar if you must.
 
+## Keep Awake (lid closed)
+- Menu: **Keep Awake (lid closed)** > 30 min, 1 h, 2 h, 4 h, 8 h, Custom..., or **Stop Keep Awake**.
+- The Mac keeps running with the lid shut (also on battery) until the timer ends. The menu bar shows `Awake 1h 12m`.
+- Needs your admin password once per session (it runs `sudo pmset -a disablesleep 1` for you).
+- Safeguards: a small root watchdog restores normal sleep when time is up, on Stop or Quit, if the app crashes, and if the battery falls below 20%. If the Mac is rebooted mid-session, the app offers to restore sleep on next launch.
+- Don't put a running Mac in a bag: with the lid closed and sleep disabled it can get hot.
+
 ## Features
 - Menu bar only app (`LSUIElement=True`, no Dock icon)
 - Idle timer via Quartz HID idle API:

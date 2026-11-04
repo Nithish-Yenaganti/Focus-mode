@@ -12,12 +12,13 @@ a classic Pomodoro timer with locked breaks, plus idle and YouTube usage alerts.
    No reading material on purpose: the break is meant to get you away from the screen.
 3. **Idle monitor**: alert when there is no keyboard/mouse activity for too long (default 10 min).
 4. **YouTube monitor**: alert when the frontmost Chrome/Safari tab stays on YouTube too long (default 15 min).
-5. All limits editable from the menu. Idle and YouTube checks pause during breaks.
+5. **Keep Awake (lid closed)**: timed `pmset disablesleep` with a root watchdog for restore, Stop/Quit and low-battery cutoff.
+6. All limits editable from the menu. Idle and YouTube checks pause during breaks.
 
 ## Layout
 | Path | Purpose |
 |---|---|
-| `focus_mode.py` | The whole app: `FocusModeApp` (menu, timers), `BreakOverlay` (lock screen) |
+| `focus_mode.py` | The whole app: `FocusModeApp` (menu, timers), `BreakOverlay` (lock screen), `KeepAwake` (lid-closed mode) |
 | `setup.py` | py2app build config (version, plist, bundled `public/` resources) |
 | `public/` | Icons and alert sounds |
 | `requirements.txt` | Python dependencies |
@@ -45,3 +46,4 @@ hdiutil create -volname "Focus Mode" -srcfolder "dist/Focus Mode.app" -ov -forma
 - The overlay cannot block Cmd+Tab or Force Quit; Quit from the menu bar also exits.
 - Requires Accessibility (idle) and Automation (browser URL) permissions.
 - Settings reset on restart (not persisted).
+- Keep Awake needs an admin password per session and affects the whole system while active; a reboot mid-session ends the watchdog, so the app offers to restore sleep on the next launch.

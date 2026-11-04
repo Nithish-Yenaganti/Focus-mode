@@ -65,8 +65,36 @@ sequenceDiagram
     T->>T: start next work phase
 ```
 
+## Keep Awake (lid closed)
+
+```mermaid
+sequenceDiagram
+    participant U as User
+    participant A as App (KeepAwake)
+    participant W as Root watchdog (detached)
+    participant S as pmset / system
+
+    U->>A: pick duration
+    A->>A: write control file in Application Support
+    A->>U: admin password prompt
+    A->>S: pmset -a disablesleep 1
+    A->>W: start watchdog (end time, control file, min battery)
+    loop every 5s
+        W->>W: time up? control file gone? battery < 20%?
+    end
+    alt any stop condition
+        W->>S: pmset -a disablesleep 0
+    end
+    A->>S: poll SleepDisabled (ends tracking if restored early)
+    U->>A: Stop or Quit
+    A->>A: delete control file (watchdog restores within ~5s)
+```
+
+The watchdog is passed its end time as an argument and only checks that the control file exists, so nothing a user process writes can extend a session. It is a separate process, so a crash of the app still ends in restored sleep.
+
 ## Key design decisions
 - **One process, two timers.** A 5s `poll` handles idle/YouTube; a 1s `pomodoro_tick` drives phases. `poll` returns early during breaks.
+- **Keep Awake safety.** The root watchdog, not the app, owns restoring sleep. After a reboot (watchdog gone) the app asks to restore on next launch.
 - **Overlay.** One borderless `NSWindow` per screen at `CGShieldingWindowLevel`, on all Spaces.
 - **Screen-free breaks.** The overlay shows only a countdown and one short tip. Nothing to read, so you actually look away.
 - **No network, no external tools.** Everything runs locally, with no dependency on any CLI or service.

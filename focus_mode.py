@@ -1,6 +1,9 @@
 #!/usr/bin/env python3
 import os
 import random
+import shlex
+import subprocess
+import time
 from dataclasses import dataclass
 
 import rumps
@@ -40,6 +43,35 @@ DEFAULT_WORK_SECONDS = 25 * 60
 DEFAULT_BREAK_SECONDS = 5 * 60
 DEFAULT_LONG_BREAK_SECONDS = 15 * 60
 POMODOROS_PER_LONG_BREAK = 4
+KEEP_AWAKE_PRESETS = [
+    (30, "30 minutes"),
+    (60, "1 hour"),
+    (120, "2 hours"),
+    (240, "4 hours"),
+    (480, "8 hours"),
+]
+LOW_BATTERY_PERCENT = 20
+KEEP_AWAKE_STATE_DIR = os.path.expanduser("~/Library/Application Support/Focus Mode")
+KEEP_AWAKE_STATE_FILE = os.path.join(KEEP_AWAKE_STATE_DIR, "keep_awake_until")
+WATCHDOG_NAME = "focusmode-watchdog"
+# Runs as root, detached from the app. Args: $1=end epoch, $2=control file, $3=min battery %.
+# It restores normal sleep when time is up, the control file is deleted (Stop / Quit),
+# or the battery gets low. It never reads the control file, so it cannot be extended.
+WATCHDOG_SCRIPT = '''
+END="$1"; CTL="$2"; MINBAT="$3"
+trap "/usr/bin/pmset -a disablesleep 0" EXIT
+trap "exit 0" TERM INT HUP
+while [ "$(date +%s)" -lt "$END" ] && [ -f "$CTL" ]; do
+  OUT=$(/usr/bin/pmset -g batt)
+  case "$OUT" in
+    *"Battery Power"*)
+      PCT=$(echo "$OUT" | grep -o "[0-9]*%" | head -1 | tr -d "%")
+      if [ -n "$PCT" ] && [ "$PCT" -lt "$MINBAT" ]; then break; fi ;;
+  esac
+  sleep 5
+done
+'''
+
 BREAK_TIPS = [
     "Stand up and walk away from your desk",
     "Look out the window at something far away",
@@ -52,6 +84,14 @@ LONG_BREAK_TIPS = [
     "Stretch your back, arms and legs",
     "Get water or a snack, then rest your eyes",
 ]
+
+def format_short(seconds: int) -> str:
+    minutes = max(0, int(seconds)) // 60
+    hours, minutes = divmod(minutes, 60)
+    if hours:
+        return f"{hours}h {minutes}m"
+    return f"{minutes}m" if minutes else "<1m"
+
 
 def format_duration(seconds: int) -> str:
     minutes, secs = divmod(max(0, int(seconds)), 60)
@@ -69,6 +109,81 @@ def run_applescript(script: str) -> str:
     if result is None:
         return ""
     return result.stringValue() or ""
+
+
+def run_as_admin(shell_command: str, prompt: str) -> None:
+    escaped = shell_command.replace("\\", "\\\\").replace('"', '\\"')
+    escaped_prompt = prompt.replace("\\", "\\\\").replace('"', '\\"')
+    run_applescript(
+        f'do shell script "{escaped}" with prompt "{escaped_prompt}" with administrator privileges'
+    )
+
+
+class KeepAwake:
+    """Keeps the Mac running with the lid closed via `pmset disablesleep`.
+
+    Starting needs one admin password prompt. A detached root watchdog enforces the
+    end time, so sleep is restored even if the app quits or crashes.
+    """
+
+    @staticmethod
+    def sleep_disabled() -> bool:
+        try:
+            out = subprocess.run(
+                ["/usr/bin/pmset", "-g"], capture_output=True, text=True, timeout=5
+            ).stdout
+        except (subprocess.SubprocessError, OSError):
+            return False
+        for line in out.splitlines():
+            if "SleepDisabled" in line:
+                return line.split()[-1] == "1"
+        return False
+
+    @staticmethod
+    def watchdog_running() -> bool:
+        try:
+            return subprocess.run(
+                ["/usr/bin/pgrep", "-f", WATCHDOG_NAME], capture_output=True, timeout=5
+            ).returncode == 0
+        except (subprocess.SubprocessError, OSError):
+            return False
+
+    @staticmethod
+    def saved_end_time() -> float | None:
+        try:
+            with open(KEEP_AWAKE_STATE_FILE) as handle:
+                return float(handle.read().strip())
+        except (OSError, ValueError):
+            return None
+
+    def start(self, seconds: int) -> float | None:
+        """Returns the end epoch, or None if the user cancelled / it failed."""
+        end = int(time.time()) + int(seconds)
+        os.makedirs(KEEP_AWAKE_STATE_DIR, exist_ok=True)
+        with open(KEEP_AWAKE_STATE_FILE, "w") as handle:
+            handle.write(str(end))
+        command = (
+            "/usr/bin/pmset -a disablesleep 1; "
+            f"/usr/bin/nohup /bin/sh -c {shlex.quote(WATCHDOG_SCRIPT)} {WATCHDOG_NAME} "
+            f"{end} {shlex.quote(KEEP_AWAKE_STATE_FILE)} {LOW_BATTERY_PERCENT} "
+            ">/dev/null 2>&1 &"
+        )
+        run_as_admin(command, "Focus Mode wants to keep your Mac awake with the lid closed.")
+        if not self.sleep_disabled():
+            self.stop()
+            return None
+        return float(end)
+
+    def stop(self):
+        """Deleting the control file makes the watchdog restore sleep within ~5s."""
+        try:
+            os.remove(KEEP_AWAKE_STATE_FILE)
+        except OSError:
+            pass
+
+    def restore_sleep_now(self):
+        self.stop()
+        run_as_admin("/usr/bin/pmset -a disablesleep 0", "Focus Mode wants to restore normal sleep.")
 
 
 def get_frontmost_browser_url() -> str:
@@ -218,12 +333,25 @@ class FocusModeApp(rumps.App):
         self.phase = "work"
         self.phase_remaining = 0
         self.overlay = BreakOverlay()
+        self.keep_awake = KeepAwake()
+        self.awake_end: float | None = None
+        self._awake_ticks = 0
+        self._pomo_title = ""
 
         self.toggle_focus_mode_item = rumps.MenuItem("Focus Mode: ON")
         self.status_idle = rumps.MenuItem("Idle: --")
         self.status_youtube = rumps.MenuItem("YouTube: --")
         self.status_idle.set_callback(None)
         self.status_youtube.set_callback(None)
+        self.status_awake = rumps.MenuItem("Keep Awake: Off")
+        self.status_awake.set_callback(None)
+        self.keep_awake_menu = rumps.MenuItem("Keep Awake (lid closed)")
+        for minutes, label in KEEP_AWAKE_PRESETS:
+            self.keep_awake_menu.add(
+                rumps.MenuItem(label, callback=lambda _, m=minutes: self.start_keep_awake(m * 60))
+            )
+        self.keep_awake_menu.add(rumps.MenuItem("Custom...", callback=self.start_keep_awake_custom))
+        self.keep_awake_menu.add(rumps.MenuItem("Stop Keep Awake", callback=self.stop_keep_awake))
         self.pomodoro_toggle_item = rumps.MenuItem("Start Pomodoro")
         self.status_pomodoro = rumps.MenuItem("Pomodoro: Stopped")
         self.status_pomodoro.set_callback(None)
@@ -233,6 +361,9 @@ class FocusModeApp(rumps.App):
             None,
             self.pomodoro_toggle_item,
             self.status_pomodoro,
+            None,
+            self.keep_awake_menu,
+            self.status_awake,
             None,
             self.status_idle,
             self.status_youtube,
@@ -257,6 +388,8 @@ class FocusModeApp(rumps.App):
 
         self.timer = rumps.Timer(self.poll, POLL_INTERVAL_SECONDS)
         self.pomodoro_timer = rumps.Timer(self.pomodoro_tick, 1)
+        self.awake_timer = rumps.Timer(self.awake_tick, 1)
+        self.startup_timer = rumps.Timer(self._startup_check, 3)
 
         self._configure_activation_policy()
         self._check_accessibility_permission()
@@ -452,7 +585,8 @@ class FocusModeApp(rumps.App):
         self.overlay.hide()
         self.pomodoro_toggle_item.title = "Start Pomodoro"
         self.status_pomodoro.title = "Pomodoro: Stopped"
-        self.title = "" if self.icon else "Focus"
+        self._pomo_title = ""
+        self._refresh_title()
 
     def _start_work(self):
         self.phase = "work"
@@ -474,7 +608,8 @@ class FocusModeApp(rumps.App):
         if self.phase == "break":
             self.overlay.set_countdown(self.phase_remaining)
             self.status_pomodoro.title = f"Break: {format_duration(self.phase_remaining)}"
-            self.title = f"Break {format_duration(self.phase_remaining)}"
+            self._pomo_title = f"Break {format_duration(self.phase_remaining)}"
+            self._refresh_title()
             if self.phase_remaining <= 0:
                 self.overlay.hide()
                 self._play_alert()
@@ -486,15 +621,103 @@ class FocusModeApp(rumps.App):
             f"Work {done + 1}/{POMODOROS_PER_LONG_BREAK}: "
             f"{format_duration(self.phase_remaining)}"
         )
-        self.title = format_duration(self.phase_remaining)
+        self._pomo_title = format_duration(self.phase_remaining)
+        self._refresh_title()
         if self.phase_remaining <= 0:
             self._start_break()
 
+    def _refresh_title(self):
+        parts = [self._pomo_title]
+        if self.awake_end is not None:
+            parts.append(f"Awake {format_short(self.awake_end - time.time())}")
+        text = " | ".join(part for part in parts if part)
+        self.title = text or ("" if self.icon else "Focus")
+
+    def start_keep_awake(self, seconds: int):
+        end = self.keep_awake.start(seconds)
+        if end is None:
+            rumps.notification(
+                "Keep Awake", "Not started", "Admin approval is needed to keep the Mac awake with the lid closed."
+            )
+            return
+        self._begin_awake_tracking(end)
+        rumps.notification(
+            "Keep Awake", "Lid-closed mode ON",
+            f"Mac stays awake for {format_short(seconds)}. Don't pack it in a bag while this is on.",
+        )
+
+    def start_keep_awake_custom(self, _):
+        value = self._update_seconds_setting("Keep Awake (minutes)", 60 * 60)
+        if value is not None:
+            self.start_keep_awake(value)
+
+    def stop_keep_awake(self, _=None):
+        if self.awake_end is None and not self.keep_awake.sleep_disabled():
+            return
+        self.keep_awake.stop()
+        self._end_awake_tracking("Keep Awake stopped", "Normal sleep will be restored in a few seconds.")
+
+    def _begin_awake_tracking(self, end: float):
+        self.awake_end = end
+        self._awake_ticks = 0
+        self.awake_timer.start()
+        self.awake_tick(None)
+
+    def _end_awake_tracking(self, subtitle: str, message: str):
+        self.awake_end = None
+        self.awake_timer.stop()
+        self.status_awake.title = "Keep Awake: Off"
+        self._refresh_title()
+        rumps.notification("Keep Awake", subtitle, message)
+
+    def awake_tick(self, _):
+        if self.awake_end is None:
+            return
+        remaining = self.awake_end - time.time()
+        self._awake_ticks += 1
+        if remaining <= 0:
+            self._end_awake_tracking("Keep Awake finished", "Normal sleep is restored.")
+            return
+        # Every 5s confirm the watchdog hasn't ended early (e.g. low battery).
+        if self._awake_ticks % 5 == 0 and not self.keep_awake.sleep_disabled():
+            self.keep_awake.stop()
+            self._end_awake_tracking(
+                "Keep Awake ended early",
+                f"Sleep was restored (battery below {LOW_BATTERY_PERCENT}% or stopped elsewhere).",
+            )
+            return
+        self.status_awake.title = f"Keep Awake: {format_short(remaining)} left"
+        self._refresh_title()
+
+    def _startup_check(self, _):
+        self.startup_timer.stop()
+        if not self.keep_awake.sleep_disabled():
+            return
+        if self.keep_awake.watchdog_running():
+            end = self.keep_awake.saved_end_time()
+            if end and end > time.time():
+                self._begin_awake_tracking(end)  # app restarted mid-session
+            return
+        response = rumps.alert(
+            title="Sleep is disabled",
+            message=(
+                "Your Mac is set to never sleep, probably from an interrupted Keep Awake "
+                "session. Restore normal sleep? (Admin password required.)"
+            ),
+            ok="Restore sleep",
+            cancel="Leave as is",
+        )
+        if response == 1:
+            self.keep_awake.restore_sleep_now()
+
     def quit_app(self, _):
+        if self.awake_end is not None:
+            self.keep_awake.stop()  # watchdog restores normal sleep
         rumps.quit_application()
 
     def run(self, **options):
         self.timer.start()
+        self.startup_timer.start()
         super().run(**options)
 
 
