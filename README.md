@@ -1,109 +1,103 @@
-# Focus Mode (macOS Menu Bar App)
+# Focus Mode
 
-A native Python menu bar app with a classic Pomodoro timer (locked, screen-free breaks) that also monitors:
-- System idle time (keyboard/mouse inactivity)
-- Continuous YouTube usage in the frontmost Chrome/Safari tab
+A small macOS menu bar app that makes you take real breaks, keeps you from drifting, and can keep your Mac running with the lid closed.
 
-When thresholds are exceeded, it plays a loud alert and sends a desktop notification.
+- **Pomodoro with locked breaks:** 25 minutes of work, then a full-screen break you can't dismiss.
+- **Keep Awake (lid closed):** run your Mac with the lid shut for a time you choose.
+- **Idle and YouTube alerts:** a loud alert when you've been idle or on YouTube too long.
 
-## Pomodoro with locked breaks
-- Menu: **Start Pomodoro** / **Stop Pomodoro**. The menu bar shows the time left.
-- Classic Pomodoro cycle: 25 min work, then a locked 5 min short break; after every 4th pomodoro the break is a locked 15 min long break. It repeats until stopped.
-- During a break a full-screen overlay covers every display with a countdown and one short tip ("Stand up", "Look out the window", "Drink water"). There is nothing to read, because the point is to look away.
+It runs locally, has no account, and makes no network requests. Nothing leaves your Mac.
+
+## Install
+
+1. Download the latest `Focus-Mode-<version>.dmg` from the [Releases page](https://github.com/Nithish-Yenaganti/Focus-mode/releases).
+2. Open the DMG and drag **Focus Mode** into **Applications**.
+3. The app is not yet signed with an Apple Developer ID, so macOS may block the first launch. Run this once, then open the app again:
+
+```bash
+xattr -dr com.apple.quarantine "/Applications/Focus Mode.app"
+```
+
+Focus Mode has no Dock icon and no window. Look for the esc key icon in the menu bar.
+
+## Using it
+
+### Pomodoro with locked breaks
+- Choose **Start Pomodoro** or **Stop Pomodoro** from the menu. The menu bar shows the time left.
+- The cycle follows the classic technique: 25 min work, then a locked 5 min break. After every 4th pomodoro the break is a 15 min long break. It repeats until you stop it.
+- During a break a full-screen overlay covers every display with a countdown and one short tip, such as "Stand up", "Look out the window" or "Drink water". There is nothing to read, because the point is to look away.
 - A sound plays when a break starts and ends.
-- All lengths are editable: **Set Work Minutes**, **Set Break Minutes**, **Set Long Break Minutes**.
-- Idle and YouTube monitoring pause during breaks.
-- The overlay has no skip button. Use Quit from the menu bar if you must.
+- Change the lengths with **Set Work Minutes**, **Set Break Minutes** and **Set Long Break Minutes**.
+- The overlay has no skip button. Use **Quit** from the menu bar if you really must leave.
 
-## Keep Awake (lid closed)
-- Menu: **Keep Awake (lid closed)** > 30 min, 1 h, 2 h, 4 h, 8 h, Custom..., or **Stop Keep Awake**.
-- The Mac keeps running with the lid shut (also on battery) until the timer ends. The menu bar shows `Awake 1h 12m`.
-- Needs your admin password once per session (it runs `sudo pmset -a disablesleep 1` for you).
-- Safeguards: a small root watchdog restores normal sleep when time is up, on Stop or Quit, if the app crashes, and if the battery falls below 20%. If the Mac is rebooted mid-session, the app offers to restore sleep on next launch.
-- Don't put a running Mac in a bag: with the lid closed and sleep disabled it can get hot.
+### Keep Awake (lid closed)
+- Choose **Keep Awake (lid closed)**, then 30 min, 1 h, 2 h, 4 h, 8 h or **Custom...**. Use **Stop Keep Awake** to end it early.
+- While it runs, your Mac keeps working with the lid shut, also on battery. The menu bar shows `Awake 1h 12m`.
+- It needs your admin password once per session. The app runs `pmset -a disablesleep 1` for you.
+- A small root watchdog restores normal sleep when the time is up, when you Stop or Quit, if the app crashes, and if the battery falls below 20%. If the Mac is rebooted mid-session, the app offers to restore sleep the next time it starts.
+- Don't carry a running Mac in a bag. With the lid closed and sleep disabled, it can get hot.
 
-## Features
-- Menu bar only app (`LSUIElement=True`, no Dock icon)
-- Idle timer via Quartz HID idle API:
-  - `CGEventSourceSecondsSinceLastEventType`
-- YouTube timer via AppleScript against frontmost browser tab
-- Mode-specific sounds from `public/`:
-  - `not_idle.mp3` for idle alerts
-  - `youtube_sound.mp3` for YouTube alerts
-- Runtime settings from menu:
-  - Set max idle minutes (default 10)
-  - Set max YouTube minutes (default 15)
-- Polling every 5 seconds (low CPU background checks)
+### Idle and YouTube alerts
+- **Idle:** plays an alert if you haven't touched the keyboard or mouse for the limit (default 10 min).
+- **YouTube:** plays an alert if the frontmost Chrome or Safari tab stays on YouTube for the limit (default 15 min).
+- Change the limits with **Set Max Idle Time** and **Set Max YouTube Time**.
+- Alerts fire once per limit and re-arm when the condition clears. Before an alert, the app raises the system volume to 65% if it is muted or lower.
+- Idle and YouTube monitoring pause during Pomodoro breaks.
+- **Focus Mode: ON/OFF** in the menu turns these two alerts on or off.
 
-## Requirements
-- macOS
-- Python 3.10+
+Settings reset when you restart the app.
 
-Install dependencies:
+## Permissions
+
+| Permission | Why | When it appears |
+|---|---|---|
+| Automation (Apple Events) | Read the URL of the frontmost Chrome or Safari tab to time YouTube use | First time the app checks a browser |
+| Accessibility | Requested at launch for idle monitoring | First launch |
+| Administrator password | Turn lid-closed sleep on and off | Each Keep Awake session |
+
+If you denied a permission before, change it under `System Settings > Privacy & Security > Automation` or `Accessibility`.
+
+## Privacy
+Focus Mode runs entirely on your Mac. It reads the active browser tab's URL only to check whether it is YouTube, and does not store or send it. It does not collect data or use the network.
+
+## Troubleshooting
+- **App won't open ("cannot verify developer"):** run the `xattr` command from the Install section.
+- **No icon in the menu bar:** the menu bar may be full. Quit other menu bar apps or check that `Focus Mode` is running in Activity Monitor.
+- **YouTube time never counts:** allow Automation for `Google Chrome` or `Safari` in System Settings.
+- **My Mac won't sleep:** a Keep Awake session may still be active. Choose **Stop Keep Awake**, or run `sudo pmset -a disablesleep 0` in Terminal.
+- **Uninstall:** quit the app, delete `/Applications/Focus Mode.app`, and run `rm -rf "$HOME/Library/Application Support/Focus Mode"`.
+
+## Development
+
+Requirements: macOS and Python 3.10+.
 
 ```bash
 python3 -m venv .venv
 source .venv/bin/activate
 pip install -U pip
 pip install -r requirements.txt
-```
-
-## Install (users)
-
-Download the latest `Focus-Mode-<version>.dmg` from the [Releases page](https://github.com/Nithish-Yenaganti/Focus-mode/releases), open it and drag **Focus Mode** to **Applications**.
-
-The app is not yet signed with an Apple Developer ID, so macOS may refuse to open it the first time. Run this once, then open it again:
-
-```bash
-xattr -dr com.apple.quarantine "/Applications/Focus Mode.app"
-```
-
-## Run (development)
-
-```bash
 python focus_mode.py
 ```
 
-## Build `.app` with py2app
+### Build the app
 
 ```bash
 python setup.py py2app
 ```
 
-Built app output:
-- `dist/Focus Mode.app`
+The app is created at `dist/Focus Mode.app`.
 
-Package a DMG (it is git-ignored; publish it as a GitHub Release, see below):
+### Package and publish a release
 
-```bash
-hdiutil create -volname "Focus Mode" -srcfolder "dist/Focus Mode.app" -ov -format UDZO Focus-Mode.dmg
-```
-
-Publish a release:
+The DMG is git-ignored. Publish it as a GitHub Release instead of committing it:
 
 ```bash
-cp Focus-Mode.dmg Focus-Mode-1.1.0.dmg
-gh release create v1.1.0 Focus-Mode-1.1.0.dmg --title "Focus Mode 1.1.0" --notes-file CHANGELOG.md
+hdiutil create -volname "Focus Mode" -srcfolder "dist/Focus Mode.app" -ov -format UDZO Focus-Mode-<version>.dmg
+gh release create v<version> Focus-Mode-<version>.dmg --title "Focus Mode <version>" --notes-file <notes.md>
 ```
 
-See [PROJECT.md](PROJECT.md) for the overview and [ARCHITECTURE.md](ARCHITECTURE.md) for diagrams.
-
-## Permissions
-
-This app needs the following macOS permissions:
-
-1. Accessibility (for reliable HID idle monitoring)
-- Path: `System Settings > Privacy & Security > Accessibility`
-- Enable access for the built app or your Python interpreter (during development).
-- The app attempts to trigger the Accessibility prompt on launch.
-
-2. Automation / Apple Events (for reading Safari/Chrome tab URL)
-- macOS prompts when the app first tries AppleScript browser access.
-- Approve prompts for controlling `System Events`, `Safari`, and/or `Google Chrome`.
-- If previously denied, reset in:
-  - `System Settings > Privacy & Security > Automation`
-
-## Notes
-- If no browser is frontmost, browser is closed, or no active tab URL is available, YouTube timer resets to zero.
-- Alerts are sent once per threshold breach and re-arm once condition clears.
-- Before playing alerts, app raises system output to 65% if muted or below 65%.
+## More docs
+- [PROJECT.md](PROJECT.md): feature overview and code layout
+- [ARCHITECTURE.md](ARCHITECTURE.md): diagrams of the components, the Pomodoro cycle and Keep Awake
+- [PRODUCTION.md](PRODUCTION.md): what it takes to sign, notarize and distribute the app
+- [CHANGELOG.md](CHANGELOG.md): version history
